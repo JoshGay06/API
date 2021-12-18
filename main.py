@@ -3,10 +3,11 @@ from pydantic import BaseModel
 from typing import Optional
 from fastapi.params import Body
 
+from databaseConnector import *
+
 app = FastAPI()
 
 posts = [{'user': '1', 'day': 'Today', 'content': 'I did a thing'}]
-
 
 class Post(BaseModel):
     id: Optional[int] = None
@@ -15,57 +16,30 @@ class Post(BaseModel):
     date_published: str
     votes: Optional[int] = None
 
+class UpdatePost(BaseModel):
+    id: int
+    name: Optional[str] = None
+    description: Optional[str] = None
+    date_published: Optional[str] = None
+    votes: Optional[int] = None
 
 class idClass(BaseModel):
-    id: str
-
-
-def find_post_by_id(id):
-    try:
-        return posts[id]
-
-    except IndexError:
-        return '404'
-
-
-def add_post(post):
-    posts.append(post)
-    print(posts)
-
-
-def delete_jeet(id):
-    try:
-        posts[id].pop()
-
-    except IndexError:
-        return '404'
-
-
-def update(id, newmessage):
-    try:
-        print(posts)
-        posts[id] = newmessage
-        print(posts)
-
-    except IndexError:
-        return '404'
+    idOfPost: str
 
 
 @app.get("/")
 def root():
-    return {"hello": "test"}
+    return {"Message": "Welcome to the Jitter API - Hope you enjoy!"}
 
 
-@app.get("/jeet")
+@app.get("/posts")
 def get_posts():
-    return posts
+    return getValues()
 
 
-@app.get("/jeetbyid")
+@app.get("/postbyid")
 def get_post_by_id(id: idClass):
-    returner = find_post_by_id(int(id.id))
-
-    print(returner)
+    returner = find_post_by_id(int(id.idOfPost))
 
     if returner == '404':
         raise HTTPException(status_code=404, detail="Item not found")
@@ -74,23 +48,31 @@ def get_post_by_id(id: idClass):
         return {'message': returner}
 
 
-@app.post("/createjeet")
-def create_post(post: dict = Body(...)):
+@app.post("/createpost")
+def create_post(post: Post):
+
     add_post(post)
-    return post
+    return ({'message': post})
 
 
-@app.delete("/deletejeet")
+@app.delete("/deletepost")
 def delete_post(id: idClass):
-    id = int(id.id)
-    delete_jeet(id)
-    return HTTPException(status_code=201, detail="Deleted successfully")
 
 
-@app.patch("/updatejeetbyid")
-def update_post_by_id(newmessage: Post):
-    newmessage = dict(newmessage)
-    returner = update(int(newmessage['id']), newmessage)
+    returner = delete_post_by_id(id.idOfPost)
+
+    if returner == 0:
+        return HTTPException(status_code=201, detail="Deleted successfully")
+
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
+        
+
+
+@app.patch("/updatepost")
+def update_post_by_id(newmessage: UpdatePost):
+
+    returner = update(int(newmessage.id), newmessage)
 
     if returner == '404':
         raise HTTPException(status_code=404, detail="Item not found")
